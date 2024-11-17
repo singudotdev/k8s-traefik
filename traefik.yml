@@ -122,10 +122,13 @@ spec:
           ports:
             - name: web
               containerPort: 80
+              protocol: TCP
             - name: websecure
               containerPort: 443
+              protocol: TCP
             - name: dashboard
               containerPort: 8080
+              protocol: TCP
           resources:
             requests:
               memory: "128Mi"
@@ -137,27 +140,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: traefik-dashboard-service
-  namespace: traefik
-spec:
-  type: NodePort
-  ports:
-    - port: 8080
-      targetPort: dashboard
-      nodePort: 32080
-  selector:
-    app: traefik
----
-apiVersion: v1
-kind: Service
-metadata:
   name: traefik-web-service
   namespace: traefik
 spec:
   type: NodePort
   ports:
-    - targetPort: web
+    - name: web
       port: 80
+      targetPort: web
       nodePort: 30080
   selector:
     app: traefik
@@ -170,8 +160,24 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - targetPort: websecure
+    - name: websecure
       port: 443
+      targetPort: websecure
       nodePort: 30443
+  selector:
+    app: traefik
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-dashboard-service
+  namespace: traefik
+spec:
+  type: NodePort
+  ports:
+    - name: dashboard
+      port: 8080
+      targetPort: dashboard
+      nodePort: 32080
   selector:
     app: traefik
