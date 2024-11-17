@@ -79,6 +79,15 @@ subjects:
     name: traefik-account
     namespace: traefik
 ---
+apiVersion: traefik.io/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  namespace: traefik
+spec:
+  defaultCertificate:
+    secretName: cloudflare-origin-cert
+---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -103,12 +112,27 @@ spec:
           args:
             - --api.insecure
             - --api.dashboard=true
+            - --providers.kubernetescrd
             - --providers.kubernetesingress
+            - --entrypoints.web.address=:80
+            - --entrypoints.websecure.address=:443
+          volumeMounts:
+            - name: data
+              mountPath: /data
           ports:
             - name: web
               containerPort: 80
+            - name: websecure
+              containerPort: 443
             - name: dashboard
               containerPort: 8080
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "500m"
+      volumes:
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -120,7 +144,7 @@ spec:
   ports:
     - port: 8080
       targetPort: dashboard
-      nodePort: 32080 # Optional: specify a static NodePort
+      nodePort: 32080
   selector:
     app: traefik
 ---
@@ -134,6 +158,20 @@ spec:
   ports:
     - targetPort: web
       port: 80
-      nodePort: 30080 # Optional: specify a static NodePort
+      nodePort: 30080
+  selector:
+    app: traefik
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-websecure-service
+  namespace: traefik
+spec:
+  type: NodePort
+  ports:
+    - targetPort: websecure
+      port: 443
+      nodePort: 30443
   selector:
     app: traefik
